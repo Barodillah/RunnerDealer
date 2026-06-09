@@ -4,17 +4,18 @@ import {
   User, Mail, Phone, Building, Briefcase, MapPin,
   Car, ShieldCheck, ArrowRight, ArrowLeft, Download,
   Upload, FileText, CheckCircle2, AlertTriangle, HelpCircle, Info,
-  X, ChevronLeft, ChevronRight
+  X, ChevronLeft, ChevronRight, UserPlus, Truck,
+  ChevronDown, Search, Check
 } from 'lucide-react';
 
 const RUNNER_MODULES = [
-  { desktop: "/modul/desktop/01_1.jpeg", mobile: "/modul/mobile/01_1_mobile.jpeg" },
-  { desktop: "/modul/desktop/01_2.jpeg", mobile: "/modul/mobile/01_2_mobile.jpeg" },
-  { desktop: "/modul/desktop/01_4.jpeg", mobile: "/modul/mobile/01_4_mobile.jpeg" },
-  { desktop: "/modul/desktop/02_1.jpeg", mobile: "/modul/mobile/02_1_mobile.jpeg" },
-  { desktop: "/modul/desktop/02_2.jpeg", mobile: "/modul/mobile/02_2_mobile.jpeg" },
-  { desktop: "/modul/desktop/02_4.jpeg", mobile: "/modul/mobile/02_4_mobile.jpeg" },
-  { desktop: "/modul/desktop/02_6.jpeg", mobile: "/modul/mobile/02_6_mobile.jpeg" }
+  { desktop: "./modul/desktop/01_1.jpeg", mobile: "./modul/mobile/01_1_mobile.jpeg" },
+  { desktop: "./modul/desktop/01_2.jpeg", mobile: "./modul/mobile/01_2_mobile.jpeg" },
+  { desktop: "./modul/desktop/01_4.jpeg", mobile: "./modul/mobile/01_4_mobile.jpeg" },
+  { desktop: "./modul/desktop/02_1.jpeg", mobile: "./modul/mobile/02_1_mobile.jpeg" },
+  { desktop: "./modul/desktop/02_2.jpeg", mobile: "./modul/mobile/02_2_mobile.jpeg" },
+  { desktop: "./modul/desktop/02_4.jpeg", mobile: "./modul/mobile/02_4_mobile.jpeg" },
+  { desktop: "./modul/desktop/02_6.jpeg", mobile: "./modul/mobile/02_6_mobile.jpeg" }
 ];
 
 
@@ -36,6 +37,89 @@ const LEASING_OPTIONS = [
   { id: "5", name: "PT. DIPO STAR FINANCE" },
   { id: "6", name: "LEASING LAINNYA" }
 ];
+
+const CustomSelect = ({ value, onChange, options, placeholder, disabled, error, className, searchable = false }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt =>
+    opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const selectedOption = options.find(opt => String(opt.value) === String(value));
+
+  return (
+    <div className={`relative ${className || ''}`} ref={dropdownRef}>
+      <div
+        className={`w-full px-4 py-3 bg-slate-50 border rounded-xl flex items-center justify-between transition-all font-medium ${disabled ? 'opacity-50 bg-slate-100 cursor-not-allowed' : 'cursor-pointer hover:border-indigo-300 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500'} ${error ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'}`}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={(e) => {
+          if (!disabled && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            setIsOpen(!isOpen);
+          }
+        }}
+      >
+        <span className={selectedOption ? 'text-slate-800' : 'text-slate-400'}>
+          {selectedOption ? selectedOption.label : placeholder}
+        </span>
+        <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-lg shadow-slate-200/50 overflow-hidden">
+          {searchable && (
+            <div className="p-2 border-b border-slate-100 sticky top-0 bg-white">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Cari..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                />
+              </div>
+            </div>
+          )}
+          <div className="max-h-60 overflow-y-auto">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map((opt) => (
+                <div
+                  key={opt.value}
+                  className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-indigo-50 flex items-center justify-between ${String(value) === String(opt.value) ? 'bg-indigo-50/50 text-indigo-700 font-bold' : 'text-slate-700'}`}
+                  onClick={() => {
+                    onChange({ target: { value: opt.value } });
+                    setIsOpen(false);
+                    setSearchTerm("");
+                  }}
+                >
+                  <span>{opt.label}</span>
+                  {String(value) === String(opt.value) && <Check className="w-4 h-4 text-indigo-600" />}
+                </div>
+              ))
+            ) : (
+              <div className="px-4 py-3 text-sm text-slate-500 text-center">Data tidak ditemukan</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function App() {
   const [step, setStep] = useState(1);
@@ -77,6 +161,11 @@ export default function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
   // Form State
   const [formData, setFormData] = useState({
     username: "",
@@ -105,9 +194,16 @@ export default function App() {
   const [districts, setDistricts] = useState([]);
   const [villages, setVillages] = useState([]);
 
+  // Di development: pakai Vite proxy (/wilayah-api → wilayah.id/api)
+  // Di production (shared hosting): pakai PHP proxy
+  const wilayahUrl = (type, code = '') =>
+    import.meta.env.DEV
+      ? `/wilayah-api/${code ? `${type}/${code}.json` : `${type}.json`}`
+      : `./wilayah-proxy.php?type=${type}${code ? `&code=${code}` : ''}`;
+
   // Fetch Provinces
   useEffect(() => {
-    fetch('/wilayah-api/provinces.json')
+    fetch(wilayahUrl('provinces'))
       .then(res => res.json())
       .then(data => setProvinces(data.data))
       .catch(err => console.error("Error fetching provinces:", err));
@@ -116,7 +212,7 @@ export default function App() {
   // Fetch Regencies
   useEffect(() => {
     if (formData.provinsi) {
-      fetch(`/wilayah-api/regencies/${formData.provinsi}.json`)
+      fetch(wilayahUrl('regencies', formData.provinsi))
         .then(res => res.json())
         .then(data => setRegencies(data.data))
         .catch(err => console.error("Error fetching regencies:", err));
@@ -128,7 +224,7 @@ export default function App() {
   // Fetch Districts
   useEffect(() => {
     if (formData.kabupaten) {
-      fetch(`/wilayah-api/districts/${formData.kabupaten}.json`)
+      fetch(wilayahUrl('districts', formData.kabupaten))
         .then(res => res.json())
         .then(data => setDistricts(data.data))
         .catch(err => console.error("Error fetching districts:", err));
@@ -140,7 +236,7 @@ export default function App() {
   // Fetch Villages
   useEffect(() => {
     if (formData.kecamatan) {
-      fetch(`/wilayah-api/villages/${formData.kecamatan}.json`)
+      fetch(wilayahUrl('villages', formData.kecamatan))
         .then(res => res.json())
         .then(data => setVillages(data.data))
         .catch(err => console.error("Error fetching villages:", err));
@@ -274,7 +370,7 @@ export default function App() {
   const validateStep2 = () => {
     const newErrors = {};
     const requiredFields = isExisting
-      ? ["username", "company", "nama", "telp"]
+      ? ["username", "email", "company", "nama", "telp"]
       : ["username", "email", "telp", "company", "sektor", "provinsi", "kabupaten", "kecamatan", "kelurahan", "alamat", "nama", "jabatan"];
 
     requiredFields.forEach(field => {
@@ -283,7 +379,7 @@ export default function App() {
       }
     });
 
-    if (formData.email && !isExisting) {
+    if (formData.email) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
         newErrors.email = "Format email tidak valid.";
@@ -475,8 +571,8 @@ export default function App() {
       {/* Header Bar */}
       <header className={`bg-white border-b border-slate-200 px-6 fixed top-0 left-0 right-0 z-50 shadow-sm transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'}`}>
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <img src="/logo.png" alt="GPS Runner Logo" className={`w-auto object-contain shrink-0 transition-all duration-300 ${isScrolled ? 'h-7 md:h-8' : 'h-10 md:h-12'}`} />
+          <div className="flex items-center justify-center w-full md:w-auto md:justify-start space-x-4 mb-3 md:mb-0">
+            <img src="./logo.png" alt="GPS Runner Logo" className={`w-auto object-contain shrink-0 transition-all duration-300 ${isScrolled ? 'h-7 md:h-8' : 'h-10 md:h-12'}`} />
           </div>
           <div className="hidden md:flex items-center space-x-2 text-xs bg-slate-100 py-1.5 px-3 rounded-full text-slate-600 font-medium">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -555,8 +651,8 @@ export default function App() {
                         }`}
                     >
                       <div className="flex justify-between items-start">
-                        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
-                          <User className="w-6 h-6" />
+                        <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
+                          <UserPlus className="w-6 h-6" />
                         </div>
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isExisting === false ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
                           }`}>
@@ -581,8 +677,8 @@ export default function App() {
                         }`}
                     >
                       <div className="flex justify-between items-start">
-                        <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
-                          <ShieldCheck className="w-6 h-6" />
+                        <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+                          <Truck className="w-6 h-6" />
                         </div>
                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${isExisting === true ? 'border-indigo-600 bg-indigo-600' : 'border-slate-300'
                           }`}>
@@ -623,11 +719,13 @@ export default function App() {
                 <div className="space-y-6 animate-fadeIn">
                   <div className="border-b border-slate-100 pb-4">
                     <span className="bg-indigo-50 text-indigo-700 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">Langkah 2</span>
-                    <h2 className="text-2xl font-black text-slate-800 mt-2">Detail Informasi Konsumen</h2>
-                    <p className="text-slate-500 text-sm mt-1">
+                    <h2 className="text-2xl font-black text-slate-800 mt-2">
+                      {isExisting ? "Detail Informasi Akun Terdaftar" : "Detail Informasi Konsumen Baru"}
+                    </h2>
+                    <p className="text-slate-500 text-sm mt-1.5 leading-relaxed">
                       {isExisting
-                        ? "Lengkapi form ringkas di bawah ini untuk mengidentifikasi akun Anda."
-                        : "Harap isi form data diri dan alamat perusahaan Anda secara lengkap di bawah ini."}
+                        ? "Silakan lengkapi formulir di bawah ini dengan data yang telah terdaftar untuk proses identifikasi akun."
+                        : "Mohon lengkapi formulir data diri dan detail perusahaan Anda dengan benar untuk kelancaran proses aktivasi akun baru."}
                     </p>
                   </div>
 
@@ -636,7 +734,9 @@ export default function App() {
 
                     {/* Username */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Username</label>
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                        {isExisting ? "Username Terdaftar" : "Username"}
+                      </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                           <User className="w-5 h-5" />
@@ -655,7 +755,9 @@ export default function App() {
 
                     {/* Company */}
                     <div className="space-y-1.5">
-                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Nama Perusahaan</label>
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                        {isExisting ? "Nama Perusahaan Terdaftar" : "Nama Perusahaan"}
+                      </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                           <Building className="w-5 h-5" />
@@ -672,26 +774,26 @@ export default function App() {
                       {errors.company && <p className="text-rose-500 text-xs font-semibold">{errors.company}</p>}
                     </div>
 
-                    {/* Email (NEW CUSTOMER ONLY) */}
-                    {!isExisting && (
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Alamat Email</label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                            <Mail className="w-5 h-5" />
-                          </div>
-                          <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => handleInputChange("email", e.target.value, formatNoSpace)}
-                            placeholder="email@perusahaan.com"
-                            className={`w-full pl-10 pr-4 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium placeholder:text-slate-400 ${errors.email ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'
-                              }`}
-                          />
+                    {/* Email */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">
+                        {isExisting ? "Email Terdaftar" : "Alamat Email"}
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                          <Mail className="w-5 h-5" />
                         </div>
-                        {errors.email && <p className="text-rose-500 text-xs font-semibold">{errors.email}</p>}
+                        <input
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange("email", e.target.value, formatNoSpace)}
+                          placeholder="email@perusahaan.com"
+                          className={`w-full pl-10 pr-4 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium placeholder:text-slate-400 ${errors.email ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'
+                            }`}
+                        />
                       </div>
-                    )}
+                      {errors.email && <p className="text-rose-500 text-xs font-semibold">{errors.email}</p>}
+                    </div>
 
                     {/* WhatsApp Phone */}
                     <div className="space-y-1.5">
@@ -717,20 +819,13 @@ export default function App() {
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Sektor Bisnis</label>
                         <div className="relative">
-                          <select
+                          <CustomSelect
                             value={formData.sektor}
                             onChange={(e) => handleInputChange("sektor", e.target.value)}
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium appearance-none ${errors.sektor ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'
-                              }`}
-                          >
-                            <option value="">Pilih Sektor Bisnis</option>
-                            {SEKTOR_OPTIONS.map(s => (
-                              <option key={s.id} value={s.id}>{s.name}</option>
-                            ))}
-                          </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-400">
-                            <Briefcase className="w-4 h-4" />
-                          </div>
+                            options={SEKTOR_OPTIONS.map(s => ({ value: s.id, label: s.name }))}
+                            placeholder="Pilih Sektor Bisnis"
+                            error={errors.sektor}
+                          />
                         </div>
                         {errors.sektor && <p className="text-rose-500 text-xs font-semibold">{errors.sektor}</p>}
                       </div>
@@ -791,71 +886,59 @@ export default function App() {
                         {/* Provinsi */}
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Provinsi</label>
-                          <select
+                          <CustomSelect
                             value={formData.provinsi}
                             onChange={handleProvinceChange}
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium ${errors.provinsi ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'
-                              }`}
-                          >
-                            <option value="">Pilih Provinsi</option>
-                            {provinces.map(p => (
-                              <option key={p.code} value={p.code}>{p.name}</option>
-                            ))}
-                          </select>
+                            options={provinces.map(p => ({ value: p.code, label: p.name }))}
+                            placeholder="Pilih Provinsi"
+                            error={errors.provinsi}
+                            searchable
+                          />
                           {errors.provinsi && <p className="text-rose-500 text-xs font-semibold">{errors.provinsi}</p>}
                         </div>
 
                         {/* Kabupaten / Kota */}
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Kota / Kabupaten</label>
-                          <select
+                          <CustomSelect
                             disabled={!formData.provinsi}
                             value={formData.kabupaten}
                             onChange={handleRegencyChange}
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium disabled:opacity-50 disabled:bg-slate-100 ${errors.kabupaten ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'
-                              }`}
-                          >
-                            <option value="">Pilih Kota / Kabupaten</option>
-                            {regencies.map(r => (
-                              <option key={r.code} value={r.code}>{r.name}</option>
-                            ))}
-                          </select>
+                            options={regencies.map(r => ({ value: r.code, label: r.name }))}
+                            placeholder="Pilih Kota / Kabupaten"
+                            error={errors.kabupaten}
+                            searchable
+                          />
                           {errors.kabupaten && <p className="text-rose-500 text-xs font-semibold">{errors.kabupaten}</p>}
                         </div>
 
                         {/* Kecamatan */}
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Kecamatan</label>
-                          <select
+                          <CustomSelect
                             disabled={!formData.kabupaten}
                             value={formData.kecamatan}
                             onChange={handleDistrictChange}
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium disabled:opacity-50 disabled:bg-slate-100 ${errors.kecamatan ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'
-                              }`}
-                          >
-                            <option value="">Pilih Kecamatan</option>
-                            {districts.map(d => (
-                              <option key={d.code} value={d.code}>{d.name}</option>
-                            ))}
-                          </select>
+                            options={districts.map(d => ({ value: d.code, label: d.name }))}
+                            placeholder="Pilih Kecamatan"
+                            error={errors.kecamatan}
+                            searchable
+                          />
                           {errors.kecamatan && <p className="text-rose-500 text-xs font-semibold">{errors.kecamatan}</p>}
                         </div>
 
                         {/* Kelurahan */}
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Kelurahan</label>
-                          <select
+                          <CustomSelect
                             disabled={!formData.kecamatan}
                             value={formData.kelurahan}
                             onChange={handleVillageChange}
-                            className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium disabled:opacity-50 disabled:bg-slate-100 ${errors.kelurahan ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'
-                              }`}
-                          >
-                            <option value="">Pilih Kelurahan</option>
-                            {villages.map(v => (
-                              <option key={v.code} value={v.code}>{v.name}</option>
-                            ))}
-                          </select>
+                            options={villages.map(v => ({ value: v.code, label: v.name }))}
+                            placeholder="Pilih Kelurahan"
+                            error={errors.kelurahan}
+                            searchable
+                          />
                           {errors.kelurahan && <p className="text-rose-500 text-xs font-semibold">{errors.kelurahan}</p>}
                         </div>
 
@@ -890,31 +973,39 @@ export default function App() {
                     </p>
                   </div>
 
-                  {/* Vehicle Count Selection Dropdown */}
-                  <div className="max-w-md space-y-1.5">
+                  {/* Vehicle Count Selection Buttons */}
+                  <div className="space-y-2">
                     <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Jumlah Kendaraan</label>
-                    <select
-                      value={formData.jumlah}
-                      onChange={(e) => handleInputChange("jumlah", e.target.value)}
-                      className={`w-full px-4 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold ${errors.jumlah ? 'border-rose-500 bg-rose-50/20' : 'border-slate-200'
-                        }`}
-                    >
-                      <option value="">Pilih Jumlah Kendaraan</option>
-                      <option value="1">1 Unit</option>
-                      <option value="2">2 Unit</option>
-                      <option value="3">3 Unit</option>
-                      <option value="4">4 Unit</option>
-                      <option value="5">Lebih dari 4 Unit</option>
-                    </select>
-                    {errors.jumlah && <p className="text-rose-500 text-xs font-semibold">{errors.jumlah}</p>}
+                    <div className="flex flex-wrap gap-2.5">
+                      {[
+                        { value: "1", label: "1 Unit" },
+                        { value: "2", label: "2 Unit" },
+                        { value: "3", label: "3 Unit" },
+                        { value: "4", label: "4 Unit" },
+                        { value: "5", label: "Lebih dari 4 Unit" }
+                      ].map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => handleInputChange("jumlah", opt.value)}
+                          className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all flex-1 md:flex-none whitespace-nowrap ${formData.jumlah === opt.value
+                            ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 border border-indigo-600'
+                            : 'bg-slate-50 text-slate-600 border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700'
+                            } ${errors.jumlah && !formData.jumlah ? 'border-rose-500 bg-rose-50/20' : ''}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                    {errors.jumlah && <p className="text-rose-500 text-xs font-semibold mt-1">{errors.jumlah}</p>}
                   </div>
 
                   {/* Dynamic Unit Form Cards (For 1 to 4 Vehicles) */}
                   {formData.jumlah && formData.jumlah !== "5" && (
                     <div className="space-y-6 pt-4">
                       {vehicles.map((v, idx) => (
-                        <div key={v.id} className="border border-slate-100 rounded-2xl bg-slate-50/50 p-5 md:p-6 space-y-4 shadow-sm relative overflow-hidden">
-                          <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-indigo-600"></div>
+                        <div key={v.id} className="border border-slate-100 rounded-2xl bg-slate-50/50 p-5 md:p-6 space-y-4 shadow-sm relative">
+                          <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-indigo-600 rounded-l-2xl"></div>
                           <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
                             <h3 className="text-md font-extrabold text-slate-800 flex items-center space-x-2">
                               <span className="bg-indigo-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold">
@@ -976,39 +1067,49 @@ export default function App() {
                             {/* Metode Pembayaran */}
                             <div className="space-y-1">
                               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Metode Pembayaran</label>
-                              <select
-                                value={v.payment}
-                                onChange={(e) => handleVehicleChange(idx, "payment", e.target.value)}
-                                className={`w-full px-4 py-2.5 bg-white border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-sm ${errors[`vehicle_${idx}_payment`] ? 'border-rose-500 bg-rose-50/10' : 'border-slate-200'
-                                  }`}
-                              >
-                                <option value="">Pilih Skema Pembayaran</option>
-                                {LEASING_OPTIONS.map(opt => (
-                                  <option key={opt.id} value={opt.id}>{opt.name}</option>
-                                ))}
-                              </select>
-                              {errors[`vehicle_${idx}_payment`] && (
-                                <p className="text-rose-500 text-[11px] font-bold mt-1">{errors[`vehicle_${idx}_payment`]}</p>
+                              {v.payment === "6" ? (
+                                <div className="relative animate-fadeIn">
+                                  <input
+                                    type="text"
+                                    value={v.customPayment}
+                                    onChange={(e) => handleVehicleChange(idx, "customPayment", e.target.value, formatUppercase)}
+                                    placeholder="Ketik Nama Leasing..."
+                                    autoFocus
+                                    className={`w-full pl-4 pr-10 py-3 bg-slate-50 border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold placeholder:font-normal text-sm ${errors[`vehicle_${idx}_customPayment`] ? 'border-rose-500 bg-rose-50/10' : 'border-slate-200'
+                                      }`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      handleVehicleChange(idx, "payment", "");
+                                      handleVehicleChange(idx, "customPayment", "");
+                                    }}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-200/80 hover:bg-slate-300 rounded-full p-1 transition-colors"
+                                    title="Ganti Skema Pembayaran"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <CustomSelect
+                                  value={v.payment}
+                                  onChange={(e) => handleVehicleChange(idx, "payment", e.target.value)}
+                                  options={LEASING_OPTIONS.map(opt => ({ value: opt.id, label: opt.name }))}
+                                  placeholder="Pilih Skema Pembayaran"
+                                  error={errors[`vehicle_${idx}_payment`]}
+                                />
+                              )}
+
+                              {v.payment === "6" ? (
+                                errors[`vehicle_${idx}_customPayment`] && (
+                                  <p className="text-rose-500 text-[11px] font-bold mt-1">{errors[`vehicle_${idx}_customPayment`]}</p>
+                                )
+                              ) : (
+                                errors[`vehicle_${idx}_payment`] && (
+                                  <p className="text-rose-500 text-[11px] font-bold mt-1">{errors[`vehicle_${idx}_payment`]}</p>
+                                )
                               )}
                             </div>
-
-                            {/* Leasing Lainnya (Manual Input) */}
-                            {v.payment === "6" && (
-                              <div className="space-y-1 md:col-span-2 animate-fadeIn">
-                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wider block">Sebutkan Leasing Lainnya</label>
-                                <input
-                                  type="text"
-                                  value={v.customPayment}
-                                  onChange={(e) => handleVehicleChange(idx, "customPayment", e.target.value, formatUppercase)}
-                                  placeholder="CONTOH: PT MANDIRI TUNAS FINANCE"
-                                  className={`w-full px-4 py-2.5 bg-white border rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold placeholder:font-normal text-sm ${errors[`vehicle_${idx}_customPayment`] ? 'border-rose-500 bg-rose-50/10' : 'border-slate-200'
-                                    }`}
-                                />
-                                {errors[`vehicle_${idx}_customPayment`] && (
-                                  <p className="text-rose-500 text-[11px] font-bold mt-1">{errors[`vehicle_${idx}_customPayment`]}</p>
-                                )}
-                              </div>
-                            )}
 
                           </div>
                         </div>
@@ -1117,8 +1218,8 @@ export default function App() {
 
                   <div className="space-y-6">
                     {/* Part A: Activation & Contact Info */}
-                    <div className="border border-slate-150 rounded-2xl bg-white shadow-sm overflow-hidden">
-                      <div className="bg-slate-50 px-5 py-3 border-b border-slate-150 flex justify-between items-center">
+                    <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden">
+                      <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
                         <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Data Akun & Kontak</span>
                         <button
                           onClick={() => setStep(2)}
@@ -1131,7 +1232,7 @@ export default function App() {
                         <div className="flex justify-between md:justify-start md:space-x-4 border-b border-slate-100 pb-2 md:border-none md:pb-0">
                           <span className="text-slate-400 font-medium md:w-36">Status Akun</span>
                           <span className="font-extrabold text-slate-800">
-                            {isExisting ? "Konsumen Existing (Lama)" : "Konsumen Baru"}
+                            {isExisting ? "Sudah Terdaftar" : "Akun Baru"}
                           </span>
                         </div>
                         <div className="flex justify-between md:justify-start md:space-x-4 border-b border-slate-100 pb-2 md:border-none md:pb-0">
@@ -1173,8 +1274,8 @@ export default function App() {
 
                     {/* Part B: Administrative Region (NEW CUSTOMER ONLY) */}
                     {!isExisting && (
-                      <div className="border border-slate-150 rounded-2xl bg-white shadow-sm overflow-hidden">
-                        <div className="bg-slate-50 px-5 py-3 border-b border-slate-150 flex justify-between items-center">
+                      <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden">
+                        <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
                           <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Detail Lokasi & Alamat</span>
                           <button
                             onClick={() => setStep(2)}
@@ -1209,8 +1310,8 @@ export default function App() {
                     )}
 
                     {/* Part C: Vehicles list summary */}
-                    <div className="border border-slate-150 rounded-2xl bg-white shadow-sm overflow-hidden">
-                      <div className="bg-slate-50 px-5 py-3 border-b border-slate-150 flex justify-between items-center">
+                    <div className="border border-slate-200 rounded-2xl bg-white overflow-hidden">
+                      <div className="bg-slate-50 px-5 py-3 border-b border-slate-200 flex justify-between items-center">
                         <span className="text-xs font-extrabold text-slate-700 uppercase tracking-wider">Armada Kendaraan ({formData.jumlah === "5" ? "> 4 Unit" : `${formData.jumlah} Unit`})</span>
                         <button
                           onClick={() => setStep(3)}
@@ -1259,14 +1360,19 @@ export default function App() {
 
                   {/* Terms and Conditions Confirmation Checkbox */}
                   <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mt-6">
-                    <label className="flex items-start space-x-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={agreeTerms}
-                        onChange={(e) => setAgreeTerms(e.target.checked)}
-                        className="mt-1 w-4.5 h-4.5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 focus:ring-2"
-                      />
-                      <span className="text-xs text-slate-600 leading-relaxed">
+                    <label className="flex items-start space-x-3 cursor-pointer group">
+                      <div className="relative flex items-center justify-center mt-0.5 shrink-0">
+                        <input
+                          type="checkbox"
+                          checked={agreeTerms}
+                          onChange={(e) => setAgreeTerms(e.target.checked)}
+                          className="peer sr-only"
+                        />
+                        <div className={`w-5 h-5 rounded border-2 transition-all duration-200 flex items-center justify-center ${agreeTerms ? 'bg-indigo-600 border-indigo-600 shadow-sm shadow-indigo-600/30' : 'bg-white border-slate-300 group-hover:border-indigo-400'}`}>
+                          <Check className={`w-3.5 h-3.5 text-white transition-all duration-200 ${agreeTerms ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} strokeWidth={3} />
+                        </div>
+                      </div>
+                      <span className="text-xs text-slate-600 leading-relaxed pt-0.5 select-none">
                         Saya menyatakan bahwa semua informasi data yang saya cantumkan di atas adalah benar adanya dan siap untuk dipertanggungjawabkan demi kebutuhan proses registrasi GPS Runner.
                       </span>
                     </label>
