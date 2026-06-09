@@ -1,0 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-indigo-50: #FFF3F0;
+  --color-indigo-100: #FFE4DD;
+  --color-indigo-200: #FFCBBF;
+  --color-indigo-300: #FFA694;
+  --color-indigo-400: #FF755B;
+  --color-indigo-500: #F3532E;
+  --color-indigo-600: #DB3D18;
+  --color-indigo-700: #B82E10;
+  --color-indigo-800: #982810;
+  --color-indigo-900: #7E2511;
+  --color-indigo-950: #440F04;
+}
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #f8fafc; /* slate-50 */
+  color: #1e293b; /* slate-800 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out forwards;
+}
