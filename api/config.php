@@ -15,9 +15,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Konfigurasi Database
 $host = "153.92.15.23";
 $port = "3306";
-$db_name = "u444914729_runner";
-$username = "u444914729_ra";
-$password = "Alobas22";
+$db_name = "";
+$username = "";
+$password = "";
 
 $conn = null;
 $dbStatus = "ok";
@@ -26,7 +26,7 @@ $dbError = "";
 try {
     $conn = new PDO("mysql:host=" . $host . ";port=" . $port . ";dbname=" . $db_name, $username, $password);
     $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $exception) {
+} catch (PDOException $exception) {
     $dbStatus = "error";
     $dbError = $exception->getMessage();
 }
