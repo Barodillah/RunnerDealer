@@ -1,7 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @import "tailwindcss";
 
 @theme {
+  --font-sans: 'Ubuntu', sans-serif;
   --color-indigo-50: #FFF3F0;
   --color-indigo-100: #FFE4DD;
   --color-indigo-200: #FFCBBF;
@@ -15,7 +16,7 @@
   --color-indigo-950: #440F04;
 }
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Ubuntu', sans-serif;
   background-color: #f8fafc; /* slate-50 */
   color: #1e293b; /* slate-800 */
   -webkit-font-smoothing: antialiased;

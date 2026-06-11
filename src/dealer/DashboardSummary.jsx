@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Car, Ticket, Activity, AlertTriangle, Copy, PhoneCall } from 'lucide-react';
+import { Users, Truck, Ticket, Activity, AlertTriangle, Copy, PhoneCall } from 'lucide-react';
 import { getDealerSummary } from '../../api/client';
 
 export default function DashboardSummary() {
@@ -31,7 +31,7 @@ export default function DashboardSummary() {
 
   const stats = [
     { name: 'Total Customers', value: summary.customers, statusBreakdown: summary.customers_status, icon: Users, color: 'bg-blue-500', bgColor: 'bg-blue-50' },
-    { name: 'Total Vehicles', value: summary.vehicles, statusBreakdown: summary.vehicles_status, icon: Car, color: 'bg-indigo-500', bgColor: 'bg-indigo-50' },
+    { name: 'Total Vehicles', value: summary.vehicles, statusBreakdown: summary.vehicles_status, icon: Truck, color: 'bg-indigo-500', bgColor: 'bg-indigo-50' },
     { name: 'Total Tickets', value: summary.tickets, statusBreakdown: summary.tickets_status, icon: Ticket, color: 'bg-emerald-500', bgColor: 'bg-emerald-50' },
     { id: 'dup_contacts', name: 'Kontak Ganda (Telp/Email)', value: summary.dup_contacts, icon: PhoneCall, color: 'bg-rose-500', bgColor: 'bg-rose-50' },
     { id: 'zero_vehicles_cust', name: 'Customer 0 Kendaraan', value: summary.zero_vehicles_cust, icon: AlertTriangle, color: 'bg-orange-500', bgColor: 'bg-orange-50' },

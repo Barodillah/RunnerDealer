@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Ticket, Users, Car, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Ticket, Users, Truck, LogOut, Menu, X } from 'lucide-react';
 
 export default function DealerLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -15,7 +15,7 @@ export default function DealerLayout() {
     { name: 'Dashboard', path: '/dealer', icon: LayoutDashboard, exact: true },
     { name: 'Tickets', path: '/dealer/tickets', icon: Ticket },
     { name: 'Customers', path: '/dealer/customers', icon: Users },
-    { name: 'Vehicles', path: '/dealer/vehicles', icon: Car },
+    { name: 'Vehicles', path: '/dealer/vehicles', icon: Truck },
   ];
 
   return (

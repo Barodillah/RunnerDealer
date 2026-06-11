@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { submitAktivasi, checkHealth, checkCustomer } from '../../api/client.js';
 import {
   User, Mail, Phone, Building, Briefcase, MapPin,
-  Car, ShieldCheck, ArrowRight, ArrowLeft, Download,
+  ShieldCheck, ArrowRight, ArrowLeft, Download,
   Upload, FileText, CheckCircle2, AlertTriangle, HelpCircle, Info,
   X, ChevronLeft, ChevronRight, UserPlus, Truck,
   ChevronDown, Search, Check
@@ -245,12 +245,12 @@ export default function ActivationForm() {
             email: formData.email,
             telp: formData.telp
           });
-          
+
           if (res && res.found && res.data) {
             setFormData(prev => {
               let updated = false;
               const newData = { ...prev };
-              
+
               // Fields to autofill
               const fields = ['company', 'nama', 'username', 'email', 'telp'];
               fields.forEach(key => {
@@ -294,7 +294,7 @@ export default function ActivationForm() {
             email: formData.email,
             telp: formData.telp
           });
-          
+
           if (res && res.found) {
             setDuplicateWarning(true);
           } else {
@@ -612,15 +612,15 @@ export default function ActivationForm() {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-        
+
         // Validate headers
         const expectedHeaders = ["No. Rangka/Chassis", "No. Polisi", "Odometer", "Metode Pembayaran", "Body Type (optional)"];
         const uploadedHeaders = jsonData[0] || [];
-        
+
         // Cek apakah jumlah kolom sama persis dan isinya sama
-        const isHeaderValid = 
+        const isHeaderValid =
           uploadedHeaders.length === expectedHeaders.length &&
-          expectedHeaders.every((h, i) => 
+          expectedHeaders.every((h, i) =>
             uploadedHeaders[i] && uploadedHeaders[i].toString().trim() === h
           );
 
@@ -871,7 +871,7 @@ export default function ActivationForm() {
           <div className="flex items-center justify-center w-full md:w-auto md:justify-start space-x-4 mb-3 md:mb-0">
             <img src="./logo.png" alt="GPS Runner Logo" className={`w-auto object-contain shrink-0 transition-all duration-300 ${isScrolled ? 'h-7 md:h-8' : 'h-10 md:h-12'}`} />
           </div>
-          <div 
+          <div
             onClick={() => navigate('/dealer')}
             className="hidden md:flex items-center space-x-2 text-xs bg-slate-100 hover:bg-indigo-50 py-1.5 px-3 rounded-full text-slate-600 hover:text-indigo-700 font-medium cursor-pointer transition-colors group"
           >
@@ -1904,9 +1904,24 @@ export default function ActivationForm() {
               <div className="pt-4 max-w-md mx-auto">
                 <div className="text-xs text-slate-500 flex items-start space-x-2 bg-indigo-50/50 p-4 rounded-xl text-left">
                   <Info className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed font-medium">
-                    <strong>Apa selanjutnya?</strong> Tim administrasi kami akan melakukan verifikasi data dalam 1x24 jam kerja. Detail verifikasi & petunjuk instalasi selanjutnya akan otomatis dikirimkan ke nomor WhatsApp aktif Anda.
-                  </p>
+                  <div className="space-y-3">
+                    <p className="leading-relaxed font-medium">
+                      <strong>Apa selanjutnya?</strong> Tim administrasi kami akan melakukan verifikasi data dalam 1x24 jam kerja. Detail verifikasi & petunjuk instalasi selanjutnya akan otomatis dikirimkan ke nomor WhatsApp aktif Anda.
+                    </p>
+                    <p className="leading-relaxed font-medium">
+                      Selagi menunggu proses verifikasi, Anda dapat mengunduh dan membaca User Guide untuk mempelajari panduan penggunaan aplikasi.
+                    </p>
+                    <a
+                      href="./modul/User_Guide_Runner_v3.pdf"
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center space-x-1.5 bg-white border border-indigo-200 text-indigo-700 px-3 py-2 rounded-lg hover:bg-indigo-100 hover:border-indigo-300 transition-colors shadow-sm font-semibold"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download User Guide (.pdf)</span>
+                    </a>
+                  </div>
                 </div>
               </div>
 

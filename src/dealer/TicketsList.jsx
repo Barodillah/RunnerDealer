@@ -8,13 +8,14 @@ export default function TicketsList() {
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  const fetchData = useCallback(async (page, searchQuery) => {
+  const fetchData = useCallback(async (page, searchQuery, statusQuery) => {
     setLoading(true);
     try {
-      const result = await getDealerTickets(page, 10, searchQuery);
+      const result = await getDealerTickets(page, 10, searchQuery, statusQuery);
       setData(result.data);
       setPagination(result.pagination);
     } catch (err) {
@@ -26,31 +27,53 @@ export default function TicketsList() {
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
-      fetchData(1, search);
+      fetchData(1, search, statusFilter);
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [search, fetchData]);
+  }, [search, statusFilter, fetchData]);
 
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
-      fetchData(newPage, search);
+      fetchData(newPage, search, statusFilter);
     }
   };
 
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-        <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h2 className="text-xl font-bold text-slate-800">Tickets List</h2>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari tiket (kode/customer/tipe)..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-72"
-            />
+        <div className="p-6 border-b border-slate-200 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 className="text-xl font-bold text-slate-800">Tickets List</h2>
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Cari tiket (kode/customer/tipe)..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 pr-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { value: '', label: 'Semua' },
+              { value: 'New', label: 'New' },
+              { value: 'In Progress', label: 'In Progress' },
+              { value: 'Closed', label: 'Closed' }
+            ].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setStatusFilter(opt.value)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
+                  statusFilter === opt.value
+                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 
