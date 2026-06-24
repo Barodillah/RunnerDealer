@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Building, Mail, Phone, MapPin, 
+import {
+  ArrowLeft, Building, Mail, Phone, MapPin,
   Truck, Ticket, User, Activity, ShieldCheck, X, Copy, Check,
-  Edit, MessageCircle, RefreshCw, Trash2, ChevronDown, Search
+  Edit, MessageCircle, RefreshCw, Trash2, ChevronDown, Search, Key
 } from 'lucide-react';
 
 const CopyableText = ({ text, className = "" }) => {
@@ -17,7 +17,7 @@ const CopyableText = ({ text, className = "" }) => {
   };
 
   return (
-    <span 
+    <span
       className={`group relative inline-flex items-center cursor-pointer transition-colors hover:text-indigo-600 ${className}`}
       onClick={handleCopy}
       title="Klik untuk menyalin"
@@ -29,13 +29,15 @@ const CopyableText = ({ text, className = "" }) => {
     </span>
   );
 };
-import { 
-  getDealerCustomerDetail, 
-  updateDealerCustomerStatus, 
+import {
+  getDealerCustomerDetail,
+  updateDealerCustomerStatus,
   deleteDealerCustomer,
   updateDealerVehicle,
   deleteDealerVehicle,
-  updateDealerVehicleStatus
+  updateDealerVehicleStatus,
+  getDealerCustomerPassword,
+  saveDealerCustomerPassword
 } from '../../api/client';
 
 const LEASING_OPTIONS = [
@@ -152,7 +154,15 @@ export default function CustomerDetail() {
   const [showWaModal, setShowWaModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [mockPassword, setMockPassword] = useState("");
+  const [savedPassword, setSavedPassword] = useState("");
+  const [passwordCopied, setPasswordCopied] = useState(false);
+  const [hasPassword, setHasPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [showMobileActions, setShowMobileActions] = useState(false);
+
   const [showVehicleWaModal, setShowVehicleWaModal] = useState(false);
   const [showVehicleStatusModal, setShowVehicleStatusModal] = useState(false);
   const [showVehicleDeleteModal, setShowVehicleDeleteModal] = useState(false);
@@ -186,6 +196,28 @@ export default function CustomerDetail() {
     }
   };
 
+  const handleOpenPasswordModal = async () => {
+    setShowPasswordModal(true);
+    setPasswordLoading(true);
+    try {
+      const res = await getDealerCustomerPassword(data.customer.id);
+      if (res.password) {
+        setMockPassword(res.password);
+        setSavedPassword(res.password);
+        setHasPassword(true);
+      } else {
+        setMockPassword('');
+        setSavedPassword('');
+        setHasPassword(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Gagal memuat password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       await deleteDealerCustomer(data.customer.id);
@@ -198,10 +230,10 @@ export default function CustomerDetail() {
   const openVehicleWaModal = (e, v) => { e.stopPropagation(); setSelectedVehicle(v); setShowVehicleWaModal(true); };
   const openVehicleStatusModal = (e, v) => { e.stopPropagation(); setSelectedVehicle(v); setShowVehicleStatusModal(true); };
   const openVehicleDeleteModal = (e, v) => { e.stopPropagation(); setSelectedVehicle(v); setShowVehicleDeleteModal(true); };
-  const openVehicleEditModal = (e, v) => { 
-    e.stopPropagation(); 
+  const openVehicleEditModal = (e, v) => {
+    e.stopPropagation();
     setSelectedVehicle(v);
-    
+
     // Parse payment
     let paymentId = "";
     let customPayment = "";
@@ -211,7 +243,7 @@ export default function CustomerDetail() {
       else if (v.payment.startsWith("LAINNYA: ")) { paymentId = "6"; customPayment = v.payment.replace("LAINNYA: ", ""); }
       else { paymentId = "6"; customPayment = v.payment; }
     }
-    
+
     // Parse body_type
     let bodyTypeId = "";
     let customBodyType = "";
@@ -261,7 +293,7 @@ export default function CustomerDetail() {
     try {
       const finalPayment = vehicleFormData.paymentId === "6" ? `LAINNYA: ${vehicleFormData.customPayment}` : (LEASING_OPTIONS.find(o => o.id === vehicleFormData.paymentId)?.name || "");
       const finalBodyType = vehicleFormData.bodyTypeId === "8" ? `LAINNYA: ${vehicleFormData.customBodyType}` : (BODY_TYPE_OPTIONS.find(o => o.id === vehicleFormData.bodyTypeId)?.name || "-");
-      
+
       const payload = {
         nopol: vehicleFormData.nopol,
         rangka: vehicleFormData.rangka,
@@ -291,7 +323,7 @@ export default function CustomerDetail() {
       <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200">
         <div className="text-center py-12">
           <p className="text-rose-600 mb-4">{error || 'Customer tidak ditemukan.'}</p>
-          <button 
+          <button
             onClick={() => navigate('/dealer/customers')}
             className="text-indigo-600 hover:text-indigo-700 font-medium inline-flex items-center"
           >
@@ -302,13 +334,13 @@ export default function CustomerDetail() {
     );
   }
 
-  const { customer, vehicles, tickets } = data;
+  const { customer, vehicles, tickets, engagements = [] } = data;
 
   return (
     <div className="space-y-6">
       {/* Header Actions */}
       <div className="flex items-center">
-        <button 
+        <button
           onClick={() => navigate('/dealer/customers')}
           className="mr-4 p-2 rounded-xl text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
         >
@@ -329,11 +361,16 @@ export default function CustomerDetail() {
               <p className="text-slate-500 font-medium flex items-center"><CopyableText text={customer.jabatan} /></p>
             </div>
           </div>
-          <div className="flex items-center space-x-3 relative group">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${customer.status === 'New' ? 'bg-emerald-100 text-emerald-700' : (customer.status === 'Other' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700')}`}>
+          <div className="flex items-center space-x-3 relative group" onClick={() => setShowMobileActions(!showMobileActions)}>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium cursor-pointer ${customer.status === 'New' ? 'bg-emerald-100 text-emerald-700' : (customer.status === 'Exception' ? 'bg-slate-100 text-slate-700' : (customer.status === 'Other' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'))}`}>
               {customer.status}
             </span>
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1.5 absolute right-full mr-3 bg-white p-1.5 rounded-lg shadow-sm border border-slate-200">
+            <div className={`transition-opacity flex items-center space-x-1.5 absolute right-full mr-3 bg-white p-1.5 rounded-lg shadow-sm border border-slate-200 z-10 ${showMobileActions ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'}`}>
+              {customer.status === 'Exception' && (
+                <button onClick={handleOpenPasswordModal} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Lihat Password">
+                  <Key className="w-4 h-4" />
+                </button>
+              )}
               <button onClick={() => navigate(`/dealer/customers/${customer.id}/edit`)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Edit Customer">
                 <Edit className="w-4 h-4" />
               </button>
@@ -349,7 +386,7 @@ export default function CustomerDetail() {
             </div>
           </div>
         </div>
-        
+
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="flex items-start">
@@ -369,7 +406,7 @@ export default function CustomerDetail() {
               </div>
             </div>
           </div>
-          
+
           <div className="space-y-4">
             <div className="flex items-start">
               <Phone className="w-5 h-5 text-slate-400 mr-3 mt-0.5" />
@@ -394,7 +431,7 @@ export default function CustomerDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Vehicles Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col lg:col-span-2">
           <div className="p-6 border-b border-slate-100 flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Truck className="w-5 h-5 text-indigo-500" />
@@ -429,7 +466,7 @@ export default function CustomerDetail() {
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${v.status === 'New' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
                           {v.status || 'New'}
                         </span>
-                        
+
                         {/* Hover Actions */}
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center space-x-1.5 absolute right-4 top-1/2 -translate-y-1/2 bg-white p-1 rounded-lg shadow-sm border border-slate-200 z-10">
                           <button onClick={(e) => openVehicleEditModal(e, v)} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors" title="Edit Kendaraan">
@@ -500,6 +537,55 @@ export default function CustomerDetail() {
             </table>
           </div>
         </div>
+
+        {/* Engagements Section */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Activity className="w-5 h-5 text-indigo-500" />
+              <h3 className="text-lg font-bold text-slate-800">Riwayat Engagement</h3>
+            </div>
+            <span className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg text-xs font-bold">
+              {engagements.length} Data
+            </span>
+          </div>
+          <div className="p-0 overflow-x-auto flex-1 max-h-80 overflow-y-auto">
+            <table className="w-full text-left text-sm text-slate-600">
+              <thead className="bg-slate-50 text-slate-500 uppercase text-xs sticky top-0">
+                <tr>
+                  <th className="px-6 py-3 font-semibold">Username</th>
+                  <th className="px-6 py-3 font-semibold">Status</th>
+                  <th className="px-6 py-3 font-semibold">Bulan Upload</th>
+                  <th className="px-6 py-3 font-semibold">Tgl Sistem</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {engagements.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-6 text-center text-slate-500">Belum ada riwayat engagement</td>
+                  </tr>
+                ) : (
+                  engagements.map(e => (
+                    <tr key={e.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-3 font-medium text-slate-800">{e.username}</td>
+                      <td className="px-6 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${e.status.toLowerCase() === 'engage' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-700'}`}>
+                          {e.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3">
+                        {e.upload_month ? new Date(e.upload_month).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }) : '-'}
+                      </td>
+                      <td className="px-6 py-3 text-slate-500 text-xs">
+                        {new Date(e.created_at).toLocaleDateString('id-ID')}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       {/* Vehicle Detail Modal */}
@@ -521,7 +607,7 @@ export default function CustomerDetail() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -550,9 +636,9 @@ export default function CustomerDetail() {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button 
+              <button
                 onClick={() => setSelectedVehicle(null)}
                 className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
               >
@@ -582,7 +668,7 @@ export default function CustomerDetail() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -605,9 +691,9 @@ export default function CustomerDetail() {
                 </div>
               </div>
             </div>
-            
+
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
-              <button 
+              <button
                 onClick={() => setSelectedTicket(null)}
                 className="px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg font-medium hover:bg-slate-50 transition-colors"
               >
@@ -624,15 +710,59 @@ export default function CustomerDetail() {
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-bold text-slate-800">Tindakan WhatsApp</h3>
-              <button onClick={() => setShowWaModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5"/></button>
+              <button onClick={() => setShowWaModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 space-y-3">
-              {['Konfirmasi', 'Akun Aktif', 'Unit Aktif', 'Follow Up Engagement'].map((action) => (
-                <button key={action} className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 font-medium text-slate-700 transition-colors flex items-center">
-                  <MessageCircle className="w-5 h-5 mr-3 text-emerald-500" />
-                  {action}
-                </button>
-              ))}
+              {(() => {
+                const hour = new Date().getHours();
+                let salam = 'Selamat Malam';
+                if (hour >= 3 && hour < 11) salam = 'Selamat Pagi';
+                else if (hour >= 11 && hour < 15) salam = 'Selamat Siang';
+                else if (hour >= 15 && hour < 18) salam = 'Selamat Sore';
+
+                const pendingVehicles = vehicles.filter(v => v.status === 'New');
+                let pendingVehiclesList = '';
+                pendingVehicles.forEach(v => {
+                  pendingVehiclesList += `- No. Polisi: *${v.nopol}*\n  No. Rangka: *${v.rangka}*\n\n`;
+                });
+
+                const waActions = [
+                  {
+                    name: 'Konfirmasi',
+                    message: `${salam},\n\nTerima kasih telah mendaftar di layanan GPS Runner melalui Mitsubishi FUSO Bintaro.\n\nDengan ini kami konfirmasi bahwa kami telah menerima data pendaftaran untuk aktivasi GPS Runner atas nama:\nNama: *${customer.nama}*\nPerusahaan: *${customer.company}*\n\nUntuk melanjutkan proses aktivasi, mohon konfirmasi bahwa alamat email *${customer.email}* adalah benar aktif dan dapat diakses.\n\n_*Mohon balas pesan ini untuk konfirmasi dan melanjutkan proses aktivasi._\n\nTerima kasih atas perhatian Bapak/Ibu.\n\nHormat kami,\n*Mitsubishi Bintaro*`
+                  },
+                  {
+                    name: 'Akun Aktif',
+                    message: `${salam} Bapak/Ibu ${customer.nama},\n\nKami ingin menginformasikan bahwa akun Bapak/Ibu telah berhasil kami daftarkan. Mohon untuk membuka email dari *KTB-Fuso*, kemudian klik *Disclaimer Activation* untuk menyetujui pengaktifan akun.\n\nAdapun *password sementara* untuk login terdapat pada email tersebut. Setelah menyetujui Disclaimer Activation, Bapak/Ibu dapat login melalui aplikasi atau web dengan:\n- *Username*: ${customer.username}\n- *Password sementara*: (terdapat di email)\n\nSetelah berhasil login, mohon segera mengganti password Bapak/Ibu demi keamanan akun.\n\nBerikut tautan untuk mengakses aplikasi:\n- *Link Aplikasi (PlayStore)*: https://play.google.com/store/apps/details?id=id.co.ktbfuso.runner\n- *Link Web Browser*: http://runner.ktbfuso.co.id/\n\n_*Sebagai referensi, contoh email terlampir._\n\nTerima kasih atas perhatian dan kerjasamanya.`
+                  },
+                  {
+                    name: 'Konfirmasi Unit',
+                    message: `${salam} Bapak/Ibu ${customer.nama},\n\nTerima kasih telah mengirimkan permintaan penambahan kendaraan pada layanan GPS Runner.\n\nBerikut detail kendaraan yang akan ditambahkan:\n${pendingVehiclesList}\nDengan ini kami informasikan bahwa permintaan Bapak/Ibu telah kami terima dan akan segera kami proses.\nMohon menunggu informasi selanjutnya dari tim kami.\n\nTerima kasih atas perhatian dan kerjasamanya.`
+                  },
+                  {
+                    name: 'Unit Aktif',
+                    message: `${salam} Bapak/Ibu ${customer.nama},\n\nBerikut detail kendaraan yang akan diaktivasi:\n${pendingVehiclesList}\nUnit Bapak/Ibu telah kami bantu aktivasi. Mohon untuk login kembali ke aplikasi dan menyetujui pengaktifan kendaraan dengan memberikan tanda centang (checklist) pada kendaraan yang akan diaktivasi.\n\nSetelah itu, mohon menunggu hingga kendaraan terupdate. Proses ini membutuhkan waktu estimasi 2x24 jam, namun dapat selesai lebih cepat.\n\nBerikut adalah tautan untuk mengakses aplikasi:\n- Aplikasi PlayStore: https://play.google.com/store/apps/details?id=id.co.ktbfuso.runner&hl=id&gl=US\n- Web Browser (Safari/Chrome): http://runner.ktbfuso.co.id/\n\nTerima kasih atas perhatian dan kerjasamanya.`
+                  },
+                  {
+                    name: 'Follow Up Engagement',
+                    message: `Selamat Siang Bapak/Ibu ${customer.nama} ${customer.company},\n\nKami dari *Mitsubishi Fuso Bintaro* ingin mengingatkan Anda untuk membuka akun *GPS Runner* Anda secara rutin.\n\nDengan memastikan *GPS pada kendaraan* Bapak/Ibu selalu dalam keadaan terupdate, Anda bisa menjaga agar tidak ada masalah yang muncul.\n\nIngat, *${vehicles.length} kendaraan* Bapak/Ibu adalah aset yang sangat berharga!\nJika ada kendaraan Anda **Not Update / Tidak Aktif* kami bisa membantu Anda.\n\nAnda bisa Login menggunakan Username : *${customer.username}*\n\nJika Anda mengalami kesulitan dalam mengakses aplikasi atau lupa password, jangan ragu untuk menghubungi kami. *Kami siap membantu Anda!*\n\nInfo selengkapnya\nhttps://www.ktbfuso.co.id/service/telematics/\n\nSalam hangat,\n*Mitsubishi Fuso Bintaro*`
+                  }
+                ];
+
+                return waActions.map((action) => (
+                  <a
+                    key={action.name}
+                    href={`https://wa.me/62${customer.telp}?text=${encodeURIComponent(action.message)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 font-medium text-slate-700 transition-colors flex items-center"
+                    onClick={() => setShowWaModal(false)}
+                  >
+                    <MessageCircle className="w-5 h-5 mr-3 text-emerald-500" />
+                    {action.name}
+                  </a>
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -645,14 +775,84 @@ export default function CustomerDetail() {
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-bold text-slate-800">Ubah Status</h3>
-              <button onClick={() => setShowStatusModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5"/></button>
+              <button onClick={() => setShowStatusModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6 grid grid-cols-2 gap-3">
-              {['New', 'Confirmed', 'Active', 'Other'].map((s) => (
+              {['New', 'Confirmed', 'Active', 'Exception', 'Other', 'Unconnected'].map((s) => (
                 <button key={s} onClick={() => handleUpdateStatus(s)} className={`px-4 py-3 rounded-xl border font-medium transition-colors ${customer.status === s ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 text-slate-700 hover:bg-slate-50'}`}>
                   {s}
                 </button>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowPasswordModal(false)}></div>
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 flex items-center"><Key className="w-5 h-5 mr-2 text-indigo-600" /> {hasPassword ? 'Password Customer' : 'Buat Password'}</h3>
+              <button onClick={() => setShowPasswordModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="p-6">
+              {passwordLoading ? (
+                <div className="flex justify-center py-6"><Activity className="w-6 h-6 text-indigo-500 animate-spin" /></div>
+              ) : (
+                <>
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+                    <input
+                      type="text"
+                      value={mockPassword}
+                      onChange={(e) => setMockPassword(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Masukkan password"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6">
+                    <button
+                      onClick={() => setShowPasswordModal(false)}
+                      className="px-4 py-2 text-slate-600 hover:bg-slate-100 font-medium rounded-lg transition-colors"
+                    >
+                      Tutup
+                    </button>
+                    {mockPassword !== savedPassword ? (
+                      <button
+                        onClick={async () => {
+                          try {
+                            await saveDealerCustomerPassword(customer.id, customer.username, mockPassword);
+                            setSavedPassword(mockPassword);
+                            setHasPassword(true);
+                            setShowPasswordModal(false);
+                            setToastMessage("Password berhasil disimpan!");
+                            setTimeout(() => setToastMessage(null), 3000);
+                          } catch (err) {
+                            alert("Gagal menyimpan password");
+                          }
+                        }}
+                        className="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                      >
+                        Simpan
+                      </button>
+                    ) : hasPassword ? (
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(mockPassword);
+                          setPasswordCopied(true);
+                          setTimeout(() => setPasswordCopied(false), 2000);
+                        }}
+                        className="px-4 py-2 bg-slate-800 text-white font-medium rounded-lg hover:bg-slate-900 transition-colors flex items-center"
+                      >
+                        {passwordCopied ? <Check className="w-4 h-4 mr-2 text-emerald-400" /> : <Copy className="w-4 h-4 mr-2" />}
+                        {passwordCopied ? 'Copied' : 'Copy'}
+                      </button>
+                    ) : null}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -665,7 +865,7 @@ export default function CustomerDetail() {
           <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-bold text-slate-800 text-rose-600 flex items-center"><Trash2 className="w-5 h-5 mr-2" /> Hapus Customer</h3>
-              <button onClick={() => setShowDeleteModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5"/></button>
+              <button onClick={() => setShowDeleteModal(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
             </div>
             <div className="p-6">
               <p className="text-slate-600 text-sm mb-6">Apakah Anda yakin ingin menghapus customer <strong>{customer.nama}</strong>? Tindakan ini tidak dapat dibatalkan.</p>
@@ -691,15 +891,15 @@ export default function CustomerDetail() {
             <div className="p-6 space-y-4">
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">No. Polisi</label>
-                <input type="text" value={vehicleFormData.nopol} onChange={e => setVehicleFormData({...vehicleFormData, nopol: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <input type="text" value={vehicleFormData.nopol} onChange={e => setVehicleFormData({ ...vehicleFormData, nopol: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">No. Rangka</label>
-                <input type="text" value={vehicleFormData.rangka} onChange={e => setVehicleFormData({...vehicleFormData, rangka: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <input type="text" value={vehicleFormData.rangka} onChange={e => setVehicleFormData({ ...vehicleFormData, rangka: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Odometer</label>
-                <input type="number" value={vehicleFormData.odometer} onChange={e => setVehicleFormData({...vehicleFormData, odometer: e.target.value})} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                <input type="number" value={vehicleFormData.odometer} onChange={e => setVehicleFormData({ ...vehicleFormData, odometer: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-slate-700">Body Type</label>
@@ -708,14 +908,14 @@ export default function CustomerDetail() {
                     <input
                       type="text"
                       value={vehicleFormData.customBodyType}
-                      onChange={(e) => setVehicleFormData({...vehicleFormData, customBodyType: e.target.value.toUpperCase()})}
+                      onChange={(e) => setVehicleFormData({ ...vehicleFormData, customBodyType: e.target.value.toUpperCase() })}
                       placeholder="Ketik Body Type..."
                       autoFocus
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-sm"
                     />
                     <button
                       type="button"
-                      onClick={() => setVehicleFormData({...vehicleFormData, bodyTypeId: "", customBodyType: ""})}
+                      onClick={() => setVehicleFormData({ ...vehicleFormData, bodyTypeId: "", customBodyType: "" })}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-200/80 hover:bg-slate-300 rounded-full p-1 transition-colors"
                       title="Ganti Body Type"
                     >
@@ -725,7 +925,7 @@ export default function CustomerDetail() {
                 ) : (
                   <CustomSelect
                     value={vehicleFormData.bodyTypeId}
-                    onChange={(e) => setVehicleFormData({...vehicleFormData, bodyTypeId: e.target.value})}
+                    onChange={(e) => setVehicleFormData({ ...vehicleFormData, bodyTypeId: e.target.value })}
                     options={BODY_TYPE_OPTIONS.map(opt => ({ value: opt.id, label: opt.name }))}
                     placeholder="Pilih Body Type"
                   />
@@ -738,14 +938,14 @@ export default function CustomerDetail() {
                     <input
                       type="text"
                       value={vehicleFormData.customPayment}
-                      onChange={(e) => setVehicleFormData({...vehicleFormData, customPayment: e.target.value.toUpperCase()})}
+                      onChange={(e) => setVehicleFormData({ ...vehicleFormData, customPayment: e.target.value.toUpperCase() })}
                       placeholder="Ketik Nama Leasing..."
                       autoFocus
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-bold text-sm"
                     />
                     <button
                       type="button"
-                      onClick={() => setVehicleFormData({...vehicleFormData, paymentId: "", customPayment: ""})}
+                      onClick={() => setVehicleFormData({ ...vehicleFormData, paymentId: "", customPayment: "" })}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-slate-200/80 hover:bg-slate-300 rounded-full p-1 transition-colors"
                       title="Ganti Skema Pembayaran"
                     >
@@ -755,7 +955,7 @@ export default function CustomerDetail() {
                 ) : (
                   <CustomSelect
                     value={vehicleFormData.paymentId}
-                    onChange={(e) => setVehicleFormData({...vehicleFormData, paymentId: e.target.value})}
+                    onChange={(e) => setVehicleFormData({ ...vehicleFormData, paymentId: e.target.value })}
                     options={LEASING_OPTIONS.map(opt => ({ value: opt.id, label: opt.name }))}
                     placeholder="Pilih Skema Pembayaran"
                   />
@@ -782,12 +982,40 @@ export default function CustomerDetail() {
               </button>
             </div>
             <div className="p-6 space-y-3">
-              <a href={`https://wa.me/${customer.telp}?text=${encodeURIComponent(`Halo, kami dari GPS Runner ingin mengonfirmasi pendaftaran armada ${selectedVehicle.nopol} Anda...`)}`} target="_blank" rel="noopener noreferrer" className="flex items-center w-full px-4 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-medium transition-colors">
-                <MessageCircle className="w-5 h-5 mr-3" /> Konfirmasi
-              </a>
-              <a href={`https://wa.me/${customer.telp}?text=${encodeURIComponent(`Halo, armada ${selectedVehicle.nopol} Anda telah aktif terpasang GPS Runner...`)}`} target="_blank" rel="noopener noreferrer" className="flex items-center w-full px-4 py-3 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-xl font-medium transition-colors">
-                <MessageCircle className="w-5 h-5 mr-3" /> Unit Aktif
-              </a>
+              {(() => {
+                const hour = new Date().getHours();
+                let salam = 'Selamat Malam';
+                if (hour >= 3 && hour < 11) salam = 'Selamat Pagi';
+                else if (hour >= 11 && hour < 15) salam = 'Selamat Siang';
+                else if (hour >= 15 && hour < 18) salam = 'Selamat Sore';
+
+                const vehicleInfo = `- No. Polisi: *${selectedVehicle.nopol}*\n  No. Rangka: *${selectedVehicle.rangka}*\n\n`;
+
+                const waActions = [
+                  {
+                    name: 'Konfirmasi Unit',
+                    message: `${salam} Bapak/Ibu ${customer.nama},\n\nTerima kasih telah mengirimkan permintaan penambahan kendaraan pada layanan GPS Runner.\n\nBerikut detail kendaraan yang akan ditambahkan:\n${vehicleInfo}Dengan ini kami informasikan bahwa permintaan Bapak/Ibu telah kami terima dan akan segera kami proses.\nMohon menunggu informasi selanjutnya dari tim kami.\n\nTerima kasih atas perhatian dan kerjasamanya.`
+                  },
+                  {
+                    name: 'Unit Aktif',
+                    message: `${salam} Bapak/Ibu ${customer.nama},\n\nBerikut detail kendaraan yang akan diaktivasi:\n${vehicleInfo}Unit Bapak/Ibu telah kami bantu aktivasi. Mohon untuk login kembali ke aplikasi dan menyetujui pengaktifan kendaraan dengan memberikan tanda centang (checklist) pada kendaraan yang akan diaktivasi.\n\nSetelah itu, mohon menunggu hingga kendaraan terupdate. Proses ini membutuhkan waktu estimasi 2x24 jam, namun dapat selesai lebih cepat.\n\nBerikut adalah tautan untuk mengakses aplikasi:\n- Aplikasi PlayStore: https://play.google.com/store/apps/details?id=id.co.ktbfuso.runner&hl=id&gl=US\n- Web Browser (Safari/Chrome): http://runner.ktbfuso.co.id/\n\nTerima kasih atas perhatian dan kerjasamanya.`
+                  }
+                ];
+
+                return waActions.map((action) => (
+                  <a
+                    key={action.name}
+                    href={`https://wa.me/62${customer.telp}?text=${encodeURIComponent(action.message)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 hover:text-emerald-700 font-medium text-slate-700 transition-colors flex items-center"
+                    onClick={() => { setShowVehicleWaModal(false); setSelectedVehicle(null); }}
+                  >
+                    <MessageCircle className="w-5 h-5 mr-3 text-emerald-500" />
+                    {action.name}
+                  </a>
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -831,6 +1059,21 @@ export default function CustomerDetail() {
                 <button onClick={handleDeleteVehicle} className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-medium transition-colors">Hapus</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-4 right-4 z-[70] animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <div className="bg-slate-800 text-white px-6 py-3 rounded-xl shadow-lg flex items-center space-x-3">
+            <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center">
+              <Check className="w-5 h-5" />
+            </div>
+            <p className="font-medium text-sm">{toastMessage}</p>
+            <button onClick={() => setToastMessage(null)} className="p-1 hover:bg-slate-700 rounded-lg ml-2 transition-colors">
+              <X className="w-4 h-4 text-slate-400" />
+            </button>
           </div>
         </div>
       )}

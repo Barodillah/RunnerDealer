@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, ChevronLeft, ChevronRight, Activity, X, Ticket as TicketIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getDealerTickets } from '../../api/client';
+import { getDealerTickets, updateDealerTicketStatus } from '../../api/client';
 
 export default function TicketsList() {
   const navigate = useNavigate();
@@ -35,6 +35,19 @@ export default function TicketsList() {
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
       fetchData(newPage, search, statusFilter);
+    }
+  };
+
+  const handleStatusChange = async (ticketId, newStatus) => {
+    try {
+      await updateDealerTicketStatus(ticketId, newStatus);
+      if (selectedTicket && selectedTicket.id === ticketId) {
+        setSelectedTicket({ ...selectedTicket, status: newStatus });
+      }
+      setData(data.map(item => item.id === ticketId ? { ...item, status: newStatus } : item));
+    } catch (error) {
+      console.error(error);
+      alert('Gagal mengubah status');
     }
   };
 
@@ -194,7 +207,15 @@ export default function TicketsList() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-slate-500 uppercase">Status</label>
-                  <p className="font-medium text-amber-600">{selectedTicket.status}</p>
+                  <select 
+                    className="block w-full mt-1 border border-slate-300 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white font-medium text-amber-600 outline-none"
+                    value={selectedTicket.status}
+                    onChange={(e) => handleStatusChange(selectedTicket.id, e.target.value)}
+                  >
+                    <option value="New">New</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Closed">Closed</option>
+                  </select>
                 </div>
                 <div className="col-span-2">
                   <label className="text-xs font-semibold text-slate-500 uppercase">Keterangan / Description</label>

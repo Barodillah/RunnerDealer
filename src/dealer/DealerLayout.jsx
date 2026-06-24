@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Ticket, Users, Truck, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Ticket, Users, Truck, LogOut, Menu, X, Activity } from 'lucide-react';
 
 export default function DealerLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -16,6 +18,7 @@ export default function DealerLayout() {
     { name: 'Tickets', path: '/dealer/tickets', icon: Ticket },
     { name: 'Customers', path: '/dealer/customers', icon: Users },
     { name: 'Vehicles', path: '/dealer/vehicles', icon: Truck },
+    { name: 'Engagement', path: '/dealer/engagement', icon: Activity },
   ];
 
   return (
@@ -100,7 +103,10 @@ export default function DealerLayout() {
           </button>
           
           <div className="ml-auto flex items-center">
-            <span className="text-sm font-medium text-slate-700 bg-slate-100 px-3 py-1 rounded-full">
+            <span 
+              className="text-sm font-medium text-slate-700 bg-slate-100 px-3 py-1 rounded-full cursor-pointer select-none"
+              onClick={() => setShowPinModal(true)}
+            >
               Admin Session
             </span>
           </div>
@@ -113,6 +119,56 @@ export default function DealerLayout() {
           </div>
         </div>
       </main>
+
+      {/* PIN Modal */}
+      {showPinModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => { setShowPinModal(false); setPinInput(''); }}></div>
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800">Masukkan PIN</h3>
+              <button onClick={() => { setShowPinModal(false); setPinInput(''); }} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5"/></button>
+            </div>
+            <div className="p-6">
+              <input 
+                type="password" 
+                value={pinInput} 
+                onChange={(e) => setPinInput(e.target.value)} 
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (pinInput === '1066') {
+                      setShowPinModal(false);
+                      setPinInput('');
+                      navigate('/dealer/backup');
+                    } else {
+                      alert('PIN salah!');
+                      setPinInput('');
+                    }
+                  }
+                }}
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4 text-center tracking-widest text-lg" 
+                placeholder="****"
+                autoFocus
+              />
+              <button 
+                onClick={() => {
+                  if (pinInput === '1066') {
+                    setShowPinModal(false);
+                    setPinInput('');
+                    navigate('/dealer/backup');
+                  } else {
+                    alert('PIN salah!');
+                    setPinInput('');
+                  }
+                }}
+                className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
+              >
+                Masuk
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

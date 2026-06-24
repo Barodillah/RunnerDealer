@@ -9,6 +9,8 @@ import CustomersList from './dealer/CustomersList';
 import VehiclesList from './dealer/VehiclesList';
 import CustomerDetail from './dealer/CustomerDetail';
 import CustomerEdit from './dealer/CustomerEdit';
+import BackupPasswords from './dealer/BackupPasswords';
+import Engagement from './dealer/Engagement';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -47,6 +49,8 @@ export default function App() {
           <Route path="customers/:id" element={<CustomerDetail />} />
           <Route path="customers/:id/edit" element={<CustomerEdit />} />
           <Route path="vehicles" element={<VehiclesList />} />
+          <Route path="engagement" element={<Engagement />} />
+          <Route path="backup" element={<BackupPasswords />} />
         </Route>
         
         {/* Catch all to public route */}

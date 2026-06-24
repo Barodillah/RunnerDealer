@@ -59,16 +59,16 @@ export default function CustomersList() {
             { value: 'New', label: 'New' },
             { value: 'Confirmed', label: 'Confirmed' },
             { value: 'Active', label: 'Active' },
+            { value: 'Exception', label: 'Exception' },
             { value: 'Other', label: 'Other' }
           ].map(opt => (
             <button
               key={opt.value}
               onClick={() => setStatusFilter(opt.value)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                statusFilter === opt.value
+              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${statusFilter === opt.value
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 scale-105'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
+                }`}
             >
               {opt.label}
             </button>
@@ -80,7 +80,7 @@ export default function CustomersList() {
         <table className="w-full text-left text-sm text-slate-600">
           <thead className="bg-slate-50 text-slate-500 uppercase text-xs font-semibold">
             <tr>
-              <th className="px-6 py-4">Nama / Jabatan</th>
+              <th className="px-6 py-4">Nama / Username</th>
               <th className="px-6 py-4">Perusahaan</th>
               <th className="px-6 py-4">Kontak</th>
               <th className="px-6 py-4">Unit</th>
@@ -101,8 +101,8 @@ export default function CustomersList() {
               </tr>
             ) : (
               data.map((item) => (
-                <tr 
-                  key={item.id} 
+                <tr
+                  key={item.id}
                   className="hover:bg-slate-50 cursor-pointer transition-colors"
                   onClick={() => navigate(`/dealer/customers/${item.id}`)}
                 >
@@ -132,7 +132,7 @@ export default function CustomersList() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.status === 'New' ? 'bg-emerald-100 text-emerald-700' : (item.status === 'Other' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700')}`}>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.status === 'New' ? 'bg-emerald-100 text-emerald-700' : (item.status === 'Exception' ? 'bg-slate-100 text-slate-700' : (item.status === 'Other' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'))}`}>
                       {item.status}
                     </span>
                   </td>

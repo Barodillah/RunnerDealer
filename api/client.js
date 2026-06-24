@@ -136,6 +136,52 @@ export const updateDealerVehicleStatus = async (id, status) => {
   return await response.json();
 };
 
+export const updateDealerTicketStatus = async (id, status) => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=update_ticket_status`, {
+    method: 'POST',
+    headers: getAuthHeader(),
+    body: JSON.stringify({ id, status })
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const getDealerCustomerPassword = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=get_customer_password&id=${id}`, {
+    headers: getAuthHeader()
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const saveDealerCustomerPassword = async (id, username, password) => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=save_customer_password`, {
+    method: 'POST',
+    headers: getAuthHeader(),
+    body: JSON.stringify({ id, username, password })
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const getDealerBackupPasswords = async () => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=get_backup_passwords`, {
+    headers: getAuthHeader()
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const updateDealerBackupLogin = async (id) => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=update_backup_login`, {
+    method: 'POST',
+    headers: getAuthHeader(),
+    body: JSON.stringify({ id })
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
 export const updateDealerVehicle = async (id, data) => {
   const response = await fetch(`${API_BASE_URL}/dealer.php?action=update_vehicle`, {
     method: 'POST',
@@ -151,6 +197,32 @@ export const deleteDealerVehicle = async (id) => {
     method: 'POST',
     headers: getAuthHeader(),
     body: JSON.stringify({ id })
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const getAllUsernames = async () => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=get_all_usernames`, {
+    headers: getAuthHeader()
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const uploadEngagements = async (data) => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=upload_engagements`, {
+    method: 'POST',
+    headers: getAuthHeader(),
+    body: JSON.stringify({ data })
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const getEngagementsSummary = async () => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=get_engagements_summary`, {
+    headers: getAuthHeader()
   });
   if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
   return await response.json();

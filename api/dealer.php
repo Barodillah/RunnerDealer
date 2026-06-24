@@ -247,10 +247,16 @@ try {
             $stmtTickets->execute([$id]);
             $tickets = $stmtTickets->fetchAll(PDO::FETCH_ASSOC);
 
+            // Get engagements
+            $stmtEngage = $conn->prepare("SELECT * FROM engagements WHERE customer_id = ? ORDER BY upload_month DESC, created_at DESC");
+            $stmtEngage->execute([$id]);
+            $engagements = $stmtEngage->fetchAll(PDO::FETCH_ASSOC);
+
             echo json_encode([
                 "customer" => $customer,
                 "vehicles" => $vehicles,
-                "tickets" => $tickets
+                "tickets" => $tickets,
+                "engagements" => $engagements
             ]);
             break;
 
@@ -406,6 +412,136 @@ try {
                 $stmtUpdateVehStatus = $conn->prepare("UPDATE vehicles SET status = ? WHERE id = ?");
                 $stmtUpdateVehStatus->execute([$input['status'], $input['id']]);
                 echo json_encode(["status" => "success", "message" => "Vehicle status updated successfully"]);
+            } catch (Exception $e) {
+                http_response_code(500); echo json_encode(["status" => "error", "message" => $e->getMessage()]);
+            }
+            break;
+
+        case 'get_all_usernames':
+            $stmt = $conn->query("SELECT username FROM customers WHERE username IS NOT NULL AND username != ''");
+            $usernames = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(["status" => "success", "data" => $usernames]);
+            break;
+
+        case 'upload_engagements':
+            $data = json_decode(file_get_contents("php://input"), true);
+            if (!is_array($data)) {
+                echo json_encode(["status" => "error", "message" => "Invalid data"]);
+                break;
+            }
+
+            $currentMonth = date('Y-m-01'); // store as first day of current month
+            $successCount = 0;
+            $notFoundUsernames = [];
+
+            foreach ($data as $row) {
+                $username = isset($row['username']) ? trim($row['username']) : '';
+                $status = isset($row['status']) ? trim($row['status']) : '';
+
+                if (empty($username)) continue;
+
+                // Find customer_id
+                $stmt = $conn->prepare("SELECT id FROM customers WHERE username = ? LIMIT 1");
+                $stmt->execute([$username]);
+                $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($customer) {
+                    $customerId = $customer['id'];
+                    $insertStmt = $conn->prepare("INSERT INTO engagements (customer_id, username, status, upload_month) VALUES (?, ?, ?, ?)");
+                    $insertStmt->execute([$customerId, $username, $status, $currentMonth]);
+                    $successCount++;
+                } else {
+                    $notFoundUsernames[] = $username;
+                }
+            }
+
+            echo json_encode([
+                "status" => "success", 
+                "success_count" => $successCount,
+                "not_found_count" => count($notFoundUsernames),
+                "not_found_usernames" => $notFoundUsernames
+            ]);
+            break;
+
+        case 'get_engagements_summary':
+            $stmt = $conn->query("
+                SELECT c.id, c.username, c.nama, c.telp, c.company, c.status,
+                  (SELECT status FROM engagements WHERE customer_id = c.id ORDER BY upload_month DESC, created_at DESC LIMIT 1) as latest_status,
+                  (SELECT COUNT(*) FROM vehicles WHERE customer_id = c.id) as vehicle_count
+                FROM customers c
+                ORDER BY c.nama ASC
+            ");
+            $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(["status" => "success", "data" => $customers]);
+            break;
+
+        case 'get_customer_password':
+            $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+            $stmt = $conn->prepare("SELECT password FROM customer_passwords WHERE customer_id = ?");
+            $stmt->execute([$id]);
+            $password = $stmt->fetchColumn();
+            echo json_encode(["status" => "success", "password" => $password ?: null]);
+            break;
+
+        case 'save_customer_password':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405); echo json_encode(["message" => "Method not allowed"]); exit();
+            }
+            if (!$input || !isset($input['id']) || !isset($input['password'])) {
+                http_response_code(400); echo json_encode(["message" => "Bad Request: Missing data"]); exit();
+            }
+            $customerId = $input['id'];
+            $username = $input['username'] ?? '';
+            $password = $input['password'];
+            
+            // Cek apakah sudah ada
+            $stmtCheck = $conn->prepare("SELECT id FROM customer_passwords WHERE customer_id = ?");
+            $stmtCheck->execute([$customerId]);
+            if ($stmtCheck->fetch()) {
+                $stmtUpdate = $conn->prepare("UPDATE customer_passwords SET password = ?, username = ? WHERE customer_id = ?");
+                $stmtUpdate->execute([$password, $username, $customerId]);
+            } else {
+                $stmtInsert = $conn->prepare("INSERT INTO customer_passwords (customer_id, username, password) VALUES (?, ?, ?)");
+                $stmtInsert->execute([$customerId, $username, $password]);
+            }
+            echo json_encode(["status" => "success", "message" => "Password saved"]);
+            break;
+
+        case 'get_backup_passwords':
+            $stmt = $conn->query("
+                SELECT cp.*, c.nama as customer_name, c.company 
+                FROM customer_passwords cp 
+                JOIN customers c ON cp.customer_id = c.id
+                ORDER BY c.nama ASC
+            ");
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(["status" => "success", "data" => $data]);
+            break;
+
+        case 'update_backup_login':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405); echo json_encode(["message" => "Method not allowed"]); exit();
+            }
+            if (!$input || !isset($input['id'])) {
+                http_response_code(400); echo json_encode(["message" => "Bad Request: Missing ID"]); exit();
+            }
+            $stmt = $conn->prepare("UPDATE customer_passwords SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?");
+            $stmt->execute([$input['id']]);
+            echo json_encode(["status" => "success", "message" => "Login updated"]);
+            break;
+
+        case 'update_ticket_status':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405); echo json_encode(["message" => "Method not allowed"]); exit();
+            }
+            if (!$input || !isset($input['id']) || !isset($input['status'])) {
+                http_response_code(400); echo json_encode(["message" => "Bad Request: Missing ID or Status"]); exit();
+            }
+
+            try {
+                $stmtUpdateStatus = $conn->prepare("UPDATE tickets SET status = ? WHERE id = ?");
+                $stmtUpdateStatus->execute([$input['status'], $input['id']]);
+                echo json_encode(["status" => "success", "message" => "Ticket status updated successfully"]);
             } catch (Exception $e) {
                 http_response_code(500); echo json_encode(["status" => "error", "message" => $e->getMessage()]);
             }
