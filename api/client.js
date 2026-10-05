@@ -92,7 +92,7 @@ const getAuthHeader = () => {
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'X-Dealer-Auth': sessionStorage.getItem('dealer_auth') || 'false'
+    'X-Dealer-Auth': localStorage.getItem('dealer_auth') || 'false'
   };
 };
 
