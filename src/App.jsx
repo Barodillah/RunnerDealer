@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ActivationForm from './pages/ActivationForm';
 import DealerLogin from './dealer/DealerLogin';
 import DealerLayout from './dealer/DealerLayout';
@@ -12,17 +12,19 @@ import CustomerEdit from './dealer/CustomerEdit';
 import BackupPasswords from './dealer/BackupPasswords';
 import Engagement from './dealer/Engagement';
 
+import NeedAttention from './dealer/NeedAttention';
+
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = sessionStorage.getItem('dealer_auth') === 'true';
+  const isAuthenticated = localStorage.getItem('dealer_auth') === 'true';
+  const location = useLocation();
   
   if (!isAuthenticated) {
-    return <Navigate to="/dealer/login" replace />;
+    return <Navigate to="/dealer/login" state={{ from: location }} replace />;
   }
   
   return children;
 };
-
 export default function App() {
   return (
     <Router>
@@ -50,6 +52,7 @@ export default function App() {
           <Route path="customers/:id/edit" element={<CustomerEdit />} />
           <Route path="vehicles" element={<VehiclesList />} />
           <Route path="engagement" element={<Engagement />} />
+          <Route path="need-attention" element={<NeedAttention />} />
           <Route path="backup" element={<BackupPasswords />} />
         </Route>
         

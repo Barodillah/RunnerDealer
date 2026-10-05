@@ -1,0 +1,6 @@
+RewriteEngine On
+
+# Redirect /api/vehicles/{rangka} ke /api/vehicles.php?rangka={rangka}
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^vehicles/(.*)$ vehicles.php?rangka=$1 [L,QSA]

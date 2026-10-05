@@ -1033,7 +1033,7 @@ export default function CustomerDetail() {
               </button>
             </div>
             <div className="p-6 grid grid-cols-1 gap-3">
-              {['New', 'Confirmed', 'Active'].map((s) => (
+              {['New', 'Confirmed', 'Active', 'Not Updated'].map((s) => (
                 <button key={s} onClick={() => handleUpdateVehicleStatus(s)} className={`px-4 py-3 rounded-xl border font-medium transition-colors ${selectedVehicle.status === s ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 hover:border-indigo-300 text-slate-700 hover:bg-slate-50'}`}>
                   {s}
                 </button>

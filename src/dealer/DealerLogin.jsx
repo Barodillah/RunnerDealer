@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, ShieldCheck, ArrowRight } from 'lucide-react';
 
 export default function DealerLogin() {
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = location.state?.from || '/dealer';
+
+  useEffect(() => {
+    // Jika sudah ada session, langsung arahkan ke route tujuan atau /dealer
+    if (localStorage.getItem('dealer_auth') === 'true') {
+      navigate(from, { replace: true });
+    }
+  }, [navigate, from]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (pin === '2098') {
-      sessionStorage.setItem('dealer_auth', 'true');
-      navigate('/dealer');
+      localStorage.setItem('dealer_auth', 'true');
+      navigate(from, { replace: true });
     } else {
       setError('PIN tidak valid. Silakan coba lagi.');
       setPin('');

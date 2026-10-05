@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Ticket, Users, Truck, LogOut, Menu, X, Activity } from 'lucide-react';
+import { LayoutDashboard, Ticket, Users, Truck, LogOut, Menu, X, Activity, AlertCircle } from 'lucide-react';
 
 export default function DealerLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -9,7 +9,7 @@ export default function DealerLayout() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    sessionStorage.removeItem('dealer_auth');
+    localStorage.removeItem('dealer_auth');
     navigate('/dealer/login');
   };
 
@@ -19,6 +19,7 @@ export default function DealerLayout() {
     { name: 'Customers', path: '/dealer/customers', icon: Users },
     { name: 'Vehicles', path: '/dealer/vehicles', icon: Truck },
     { name: 'Engagement', path: '/dealer/engagement', icon: Activity },
+    { name: 'Need Attention', path: '/dealer/need-attention', icon: AlertCircle },
   ];
 
   return (

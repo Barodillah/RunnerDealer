@@ -12,6 +12,7 @@ export default function Engagement() {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
+  const [uploadDate, setUploadDate] = useState(new Date().toISOString().split('T')[0]);
 
   const [summaryData, setSummaryData] = useState([]);
 
@@ -36,7 +37,7 @@ export default function Engagement() {
     try {
       const res = await getAllUsernames();
       if (res.status === 'success') {
-        const usernames = new Set(res.data.map(d => d.username));
+        const usernames = new Set(res.data.map(d => String(d.username).toLowerCase()));
         setExistingUsernames(usernames);
       }
     } catch (error) {
@@ -79,7 +80,7 @@ export default function Engagement() {
         return {
           username: String(username).trim(),
           status: String(status).trim(),
-          isValid: existingUsernames.has(String(username).trim())
+          isValid: existingUsernames.has(String(username).trim().toLowerCase())
         };
       }).filter(row => row.username !== '');
 
@@ -99,7 +100,7 @@ export default function Engagement() {
         status: d.status
       }));
 
-      const res = await uploadEngagements(dataToUpload);
+      const res = await uploadEngagements({ data: dataToUpload, date: uploadDate });
       if (res.status === 'success') {
         setResult({
           success: res.success_count,
@@ -189,14 +190,22 @@ export default function Engagement() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-800">Review Data ({previewData.length} baris)</h3>
-              <button
-                onClick={handleUpload}
-                disabled={uploading}
-                className="flex items-center px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
-              >
-                {uploading ? <RefreshCw className="w-5 h-5 mr-2 animate-spin" /> : <Upload className="w-5 h-5 mr-2" />}
-                {uploading ? 'Mengupload...' : 'Mulai Upload'}
-              </button>
+              <div className="flex items-center gap-4">
+                <input 
+                  type="date"
+                  value={uploadDate}
+                  onChange={(e) => setUploadDate(e.target.value)}
+                  className="px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-indigo-500"
+                />
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading}
+                  className="flex items-center px-6 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
+                >
+                  {uploading ? <RefreshCw className="w-5 h-5 mr-2 animate-spin" /> : <Upload className="w-5 h-5 mr-2" />}
+                  {uploading ? 'Mengupload...' : 'Mulai Upload'}
+                </button>
+              </div>
             </div>
 
             <div className="overflow-x-auto border border-slate-200 rounded-xl">

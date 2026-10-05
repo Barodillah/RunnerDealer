@@ -30,6 +30,24 @@ $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 try {
     switch ($action) {
+        case 'sektor_stats':
+            $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
+            $where = "WHERE sektor IS NOT NULL AND sektor != ''";
+            
+            if ($filter === '1y') {
+                $where .= " AND created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)";
+            } elseif ($filter === '6m') {
+                $where .= " AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)";
+            } elseif ($filter === '3m') {
+                $where .= " AND created_at >= DATE_SUB(NOW(), INTERVAL 3 MONTH)";
+            }
+
+            $stmt = $conn->query("SELECT sektor, COUNT(id) as count FROM customers $where GROUP BY sektor ORDER BY count DESC");
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            echo json_encode(["status" => "success", "data" => $data]);
+            break;
+
         case 'summary':
             $stmtC = $conn->query("SELECT COUNT(id) as total FROM customers");
             $totalCustomers = $stmtC->fetchColumn();
@@ -376,18 +394,6 @@ try {
                 
                 $id = $input['id'];
                 
-                // Get nopol of the vehicle to delete related tickets properly if tickets use nopol or vehicle_id
-                // Since ticket schema typically uses nopol or customer_id, let's delete tickets matching nopol or vehicle_id
-                // Assuming ticket schema has 'nopol' based on the usual pattern, or we can just assume tickets have vehicle_id
-                $stmtGetNopol = $conn->prepare("SELECT nopol FROM vehicles WHERE id = ?");
-                $stmtGetNopol->execute([$id]);
-                $nopol = $stmtGetNopol->fetchColumn();
-
-                if ($nopol) {
-                    $stmtDelTickets = $conn->prepare("DELETE FROM tickets WHERE nopol = ?");
-                    $stmtDelTickets->execute([$nopol]);
-                }
-                
                 // Delete vehicle
                 $stmtDelVehicle = $conn->prepare("DELETE FROM vehicles WHERE id = ?");
                 $stmtDelVehicle->execute([$id]);
@@ -424,13 +430,15 @@ try {
             break;
 
         case 'upload_engagements':
-            $data = json_decode(file_get_contents("php://input"), true);
+            $req = json_decode(file_get_contents("php://input"), true);
+            $data = (is_array($req) && isset($req['data'])) ? $req['data'] : $req;
             if (!is_array($data)) {
                 echo json_encode(["status" => "error", "message" => "Invalid data"]);
                 break;
             }
 
-            $currentMonth = date('Y-m-01'); // store as first day of current month
+            $uploadDate = (is_array($req) && isset($req['date']) && !empty($req['date'])) ? $req['date'] : date('Y-m-d');
+            $currentMonth = date('Y-m-01', strtotime($uploadDate));
             $successCount = 0;
             $notFoundUsernames = [];
 
@@ -440,13 +448,21 @@ try {
 
                 if (empty($username)) continue;
 
-                // Find customer_id
-                $stmt = $conn->prepare("SELECT id FROM customers WHERE username = ? LIMIT 1");
+                // Find customer_id case-insensitively
+                $stmt = $conn->prepare("SELECT id, username FROM customers WHERE LOWER(username) = LOWER(?) LIMIT 1");
                 $stmt->execute([$username]);
                 $customer = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($customer) {
                     $customerId = $customer['id'];
+                    $dbUsername = $customer['username'];
+
+                    // Update username if case differs
+                    if ($dbUsername !== $username) {
+                        $updateStmt = $conn->prepare("UPDATE customers SET username = ? WHERE id = ?");
+                        $updateStmt->execute([$username, $customerId]);
+                    }
+
                     $insertStmt = $conn->prepare("INSERT INTO engagements (customer_id, username, status, upload_month) VALUES (?, ?, ?, ?)");
                     $insertStmt->execute([$customerId, $username, $status, $currentMonth]);
                     $successCount++;
@@ -473,6 +489,21 @@ try {
             ");
             $customers = $stmt->fetchAll(PDO::FETCH_ASSOC);
             echo json_encode(["status" => "success", "data" => $customers]);
+            break;
+
+        case 'need_attention_customers':
+            $stmt = $conn->query("
+                SELECT c.id, c.username, c.email, c.telp, c.company, c.nama, c.status, c.created_at,
+                  (SELECT COUNT(id) FROM vehicles WHERE customer_id = c.id) as unit_count,
+                  (SELECT status FROM engagements WHERE customer_id = c.id ORDER BY upload_month DESC, created_at DESC LIMIT 1) as latest_status
+                FROM customers c
+                HAVING (
+                  SELECT COUNT(id) FROM engagements WHERE customer_id = c.id AND LOWER(status) = 'engage'
+                ) = 0
+                ORDER BY c.created_at DESC
+            ");
+            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            echo json_encode(["status" => "success", "data" => $data]);
             break;
 
         case 'get_customer_password':

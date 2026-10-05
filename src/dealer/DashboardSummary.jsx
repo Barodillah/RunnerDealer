@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Truck, Ticket, Activity, AlertTriangle, Copy, PhoneCall } from 'lucide-react';
-import { getDealerSummary } from '../../api/client';
+import { getDealerSummary, getDealerSektorStats } from '../../api/client';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
+import { Doughnut } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 
 export default function DashboardSummary() {
   const [summary, setSummary] = useState({ 
@@ -13,6 +17,9 @@ export default function DashboardSummary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedCard, setExpandedCard] = useState(null);
+  
+  const [sektorFilter, setSektorFilter] = useState('all');
+  const [sektorData, setSektorData] = useState([]);
 
   useEffect(() => {
     const fetchSummary = async () => {
@@ -28,6 +35,20 @@ export default function DashboardSummary() {
     };
     fetchSummary();
   }, []);
+
+  useEffect(() => {
+    const fetchSektorStats = async () => {
+      try {
+        const res = await getDealerSektorStats(sektorFilter);
+        if (res.status === 'success') {
+          setSektorData(res.data);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchSektorStats();
+  }, [sektorFilter]);
 
   const stats = [
     { name: 'Total Customers', value: summary.customers, statusBreakdown: summary.customers_status, icon: Users, color: 'bg-blue-500', bgColor: 'bg-blue-50' },
@@ -147,6 +168,56 @@ export default function DashboardSummary() {
             </div>
           );
         })}
+      </div>
+
+      {/* Doughnut Chart for Sektor Bisnis */}
+      <div className="mt-8 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-fadeIn p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+          <h3 className="font-bold text-slate-800 text-lg">Persentase Customer Berdasarkan Sektor</h3>
+          <select 
+            value={sektorFilter} 
+            onChange={(e) => setSektorFilter(e.target.value)}
+            className="mt-4 sm:mt-0 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 outline-none focus:border-indigo-500 bg-slate-50"
+          >
+            <option value="all">Semua Data</option>
+            <option value="1y">1 Tahun Terakhir</option>
+            <option value="6m">6 Bulan Terakhir</option>
+            <option value="3m">3 Bulan Terakhir</option>
+          </select>
+        </div>
+        <div className="flex justify-center items-center h-80">
+          {sektorData.length > 0 ? (
+            <Doughnut 
+              data={{
+                labels: sektorData.map(d => d.sektor),
+                datasets: [
+                  {
+                    data: sektorData.map(d => d.count),
+                    backgroundColor: [
+                      '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', 
+                      '#ec4899', '#06b6d4', '#84cc16', '#64748b', '#f43f5e'
+                    ],
+                    borderWidth: 2,
+                    hoverOffset: 10
+                  },
+                ],
+              }} 
+              options={{
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'right',
+                    labels: {
+                      font: { family: "'Inter', sans-serif", size: 12 }
+                    }
+                  }
+                }
+              }}
+            />
+          ) : (
+            <p className="text-slate-500 italic">Belum ada data sektor.</p>
+          )}
+        </div>
       </div>
 
       {/* Expanded Details Section */}

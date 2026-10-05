@@ -210,11 +210,11 @@ export const getAllUsernames = async () => {
   return await response.json();
 };
 
-export const uploadEngagements = async (data) => {
+export const uploadEngagements = async (payload) => {
   const response = await fetch(`${API_BASE_URL}/dealer.php?action=upload_engagements`, {
     method: 'POST',
     headers: getAuthHeader(),
-    body: JSON.stringify({ data })
+    body: JSON.stringify(payload)
   });
   if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
   return await response.json();
@@ -222,6 +222,22 @@ export const uploadEngagements = async (data) => {
 
 export const getEngagementsSummary = async () => {
   const response = await fetch(`${API_BASE_URL}/dealer.php?action=get_engagements_summary`, {
+    headers: getAuthHeader()
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const getDealerSektorStats = async (filter = 'all') => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=sektor_stats&filter=${filter}`, {
+    headers: getAuthHeader()
+  });
+  if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+  return await response.json();
+};
+
+export const getNeedAttentionCustomers = async () => {
+  const response = await fetch(`${API_BASE_URL}/dealer.php?action=need_attention_customers`, {
     headers: getAuthHeader()
   });
   if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
